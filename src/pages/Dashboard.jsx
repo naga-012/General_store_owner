@@ -13,6 +13,7 @@ import {
   PackageCheck,
   RefreshCw,
   IndianRupee,
+  MapPin,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -398,8 +399,14 @@ const Dashboard = () => {
                           {order.orderStatus.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {order.customerName || 'Customer'} • ₹{order.grandTotal}
+                      <p className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
+                        <span>{order.customerName || 'Customer'} • ₹{order.grandTotal}</span>
+                        {(order.customerAddress || order.deliveryAddress) && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md font-medium">
+                            <MapPin className="w-2.5 h-2.5 text-rose-500" />
+                            <span className="truncate max-w-[160px]">{order.customerAddress || order.deliveryAddress}</span>
+                          </span>
+                        )}
                       </p>
                     </div>
 

@@ -8,14 +8,18 @@ import {
   Store,
   CheckCircle2,
   AlertTriangle,
+  Volume2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import { orderAlarm } from '../utils/orderAlarm';
+import { useToast } from '../context/ToastContext';
 import api from '../services/api';
 
 const Header = ({ onOpenSidebar }) => {
   const { owner } = useAuth();
   const { latestOrder } = useSocket();
+  const toast = useToast();
   const [settings, setSettings] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -103,6 +107,20 @@ const Header = ({ onOpenSidebar }) => {
           <span className="md:hidden">Customer Site</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
+
+        {/* Test Loud Alarm Button */}
+        <button
+          type="button"
+          onClick={() => {
+            orderAlarm.testSound();
+            toast.info('🔔 Loud order alarm test sound playing!');
+          }}
+          title="Test Loud Order Alarm"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition shadow-xs"
+        >
+          <Volume2 className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+          <span className="hidden sm:inline">Test Alarm</span>
+        </button>
 
         {/* Notifications Icon */}
         <Link

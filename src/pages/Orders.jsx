@@ -13,6 +13,8 @@ import {
   RefreshCw,
   Eye,
   ChevronRight,
+  MapPin,
+  ExternalLink,
 } from 'lucide-react';
 import api from '../services/api';
 import { useSocket } from '../context/SocketContext';
@@ -26,6 +28,18 @@ const TABS = [
   { id: 'completed', label: 'Completed (Last 7 Days)' },
   { id: 'rejected', label: 'Rejected' },
 ];
+
+const getOrderLocation = (order) => {
+  if (!order) return 'Store Counter Pickup';
+  return (
+    order.customerAddress ||
+    order.deliveryAddress ||
+    order.address ||
+    order.customer?.address ||
+    order.shippingAddress ||
+    (order.orderType === 'PICKUP' ? 'Store Counter Pickup' : 'Store Counter Pickup')
+  );
+};
 
 const Orders = () => {
   const { latestOrder, stopAlarm } = useSocket();
@@ -138,11 +152,10 @@ const Orders = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                activeTab === tab.id
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${activeTab === tab.id
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -245,6 +258,27 @@ const Orders = () => {
                     <span className="text-xs text-slate-400 font-medium">Grand Total</span>
                     <span className="text-lg font-black text-slate-900">₹{order.grandTotal}</span>
                   </div>
+                </div>
+
+                {/* Customer Location */}
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <MapPin className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                    <span className="font-medium text-slate-700">
+                      <strong className="text-slate-900">Customer Location:</strong> {getOrderLocation(order)}
+                    </span>
+                  </div>
+                  {getOrderLocation(order) !== 'Store Counter Pickup' && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getOrderLocation(order))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800 hover:underline text-[11px] bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200"
+                    >
+                      <span>Google Maps</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
                 </div>
 
                 {/* Items Summary (Requirement 27) */}
@@ -358,12 +392,46 @@ const Orders = () => {
               </button>
             </div>
 
-            {/* Customer Details */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-              <div className="font-bold text-slate-800">Customer Contact & Address</div>
-              <div>Name: <strong className="text-slate-700">{selectedOrder.customerName}</strong></div>
-              <div>Mobile: <strong className="text-slate-700">{selectedOrder.customerMobile}</strong></div>
-              <div>Address: <span className="text-slate-600">{selectedOrder.deliveryAddress || 'Store Pickup'}</span></div>
+            {/* Customer Details & Location */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2.5">
+              <div className="font-bold text-slate-900 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-rose-500" />
+                  <span>Customer & Delivery Location</span>
+                </span>
+                {getOrderLocation(selectedOrder) && getOrderLocation(selectedOrder) !== 'Store Counter Pickup' && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getOrderLocation(selectedOrder))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:underline bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px]"
+                  >
+                    <span>Open in Google Maps</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Customer Name</span>
+                  <span className="font-bold text-slate-800">{selectedOrder.customerName || 'Customer'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Mobile Number</span>
+                  <a href={`tel:${selectedOrder.customerMobile}`} className="font-bold text-emerald-700 hover:underline inline-flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {selectedOrder.customerMobile}
+                  </a>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-200/60">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Exact Delivery Address / Location</span>
+                <span className="font-semibold text-slate-800 text-xs mt-0.5 block leading-relaxed">
+                  {getOrderLocation(selectedOrder)}
+                </span>
+              </div>
             </div>
 
             {/* Items Table */}
