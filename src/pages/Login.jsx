@@ -145,8 +145,8 @@ const Login = () => {
           </form>
 
           <div className="mt-6 pt-5 border-t border-slate-100 text-center text-xs text-slate-500">
-            <span>Admin Email: </span>
-            <span className="font-semibold text-slate-700">mykalanagarjun09@gmail.com</span> (or Mobile: <span className="font-semibold text-slate-700">9121792433</span>)
+            <span>Admin Mobile: </span>
+            <span className="font-semibold text-emerald-700">9121792433</span> (or Email: <span className="font-semibold text-emerald-700">mykalanagarjun09@gmail.com</span>)
           </div>
         </div>
       </div>
