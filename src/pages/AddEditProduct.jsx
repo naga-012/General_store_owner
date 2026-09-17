@@ -11,7 +11,7 @@ import {
   CheckCircle,
   HelpCircle,
 } from 'lucide-react';
-import api from '../services/api';
+import api, { getFullImageUrl } from '../services/api';
 import { useToast } from '../context/ToastContext';
 
 // Preset units for quick clicks (Requirement 10)
@@ -78,11 +78,7 @@ const AddEditProduct = () => {
             if (p.image) {
               const isWebUrl = p.image.startsWith('http://') || p.image.startsWith('https://');
               setImageSource(isWebUrl ? 'url' : 'upload');
-              setImagePreview(
-                p.image.startsWith('http')
-                  ? p.image
-                  : `http://localhost:5000${p.image}`
-              );
+              setImagePreview(getFullImageUrl(p.image));
             }
             setStatus(p.status || 'active');
             setIsFeatured(p.isFeatured || false);

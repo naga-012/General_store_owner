@@ -1,6 +1,30 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+export const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/+$/, '')}/api`;
+  }
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:5000/api';
+  }
+  return 'https://kirana-backend-mb03.onrender.com/api';
+};
+
+export const API_BASE = getBaseURL();
+
+export const getBackendOrigin = () => {
+  return API_BASE.replace(/\/api\/?$/, '');
+};
+
+export const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  const origin = getBackendOrigin();
+  return `${origin}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`;
+};
 
 const api = axios.create({
   baseURL: API_BASE,

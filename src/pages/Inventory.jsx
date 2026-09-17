@@ -12,7 +12,7 @@ import {
   TrendingDown,
   Package,
 } from 'lucide-react';
-import api from '../services/api';
+import api, { getFullImageUrl } from '../services/api';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
 
@@ -269,7 +269,7 @@ const Inventory = () => {
                         <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
                           {row.image ? (
                             <img
-                              src={row.image.startsWith('http') ? row.image : `http://localhost:5000${row.image}`}
+                              src={getFullImageUrl(row.image)}
                               alt={row.productName}
                               className="w-full h-full object-cover"
                             />

@@ -13,7 +13,7 @@ import {
   Package,
   Layers,
 } from 'lucide-react';
-import api from '../services/api';
+import api, { getFullImageUrl } from '../services/api';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
 
@@ -298,7 +298,7 @@ const Products = () => {
                           <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0 flex items-center justify-center">
                             {p.image ? (
                               <img
-                                src={p.image.startsWith('http') ? p.image : `http://localhost:5000${p.image}`}
+                                src={getFullImageUrl(p.image)}
                                 alt={p.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
@@ -423,7 +423,7 @@ const Products = () => {
                     <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
                       {p.image ? (
                         <img
-                          src={p.image.startsWith('http') ? p.image : `http://localhost:5000${p.image}`}
+                          src={getFullImageUrl(p.image)}
                           alt={p.name}
                           className="w-full h-full object-cover"
                         />

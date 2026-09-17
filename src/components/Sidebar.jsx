@@ -124,7 +124,13 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
 
             <a
-              href="http://localhost:5173"
+              href={
+                import.meta.env.VITE_CUSTOMER_URL ||
+                (typeof window !== 'undefined' &&
+                (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                  ? 'http://localhost:5173'
+                  : 'https://kirana-customer-web.onrender.com')
+              }
               target="_blank"
               rel="noopener noreferrer"
               title="Open Customer Store"

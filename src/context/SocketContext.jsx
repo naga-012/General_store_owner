@@ -48,7 +48,16 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+    const getSocketURL = () => {
+      const envUrl = import.meta.env.VITE_SOCKET_URL;
+      if (envUrl) return envUrl;
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        return 'http://localhost:5000';
+      }
+      return 'https://kirana-backend-mb03.onrender.com';
+    };
+
+    const socketUrl = getSocketURL();
     const newSocket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       withCredentials: true,

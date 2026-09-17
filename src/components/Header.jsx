@@ -88,7 +88,13 @@ const Header = ({ onOpenSidebar }) => {
 
         {/* Customer Store Link */}
         <a
-          href="http://localhost:5173"
+          href={
+            import.meta.env.VITE_CUSTOMER_URL ||
+            (typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+              ? 'http://localhost:5173'
+              : 'https://kirana-customer-web.onrender.com')
+          }
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:text-emerald-700 text-slate-600 text-xs font-medium transition bg-slate-50 hover:bg-emerald-50/50"

@@ -51,7 +51,11 @@ export const AuthProvider = ({ children }) => {
         throw new Error(res.data.message || 'Login failed');
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Invalid email or password';
+      const msg =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        'Invalid email or password';
       throw new Error(msg);
     }
   };
