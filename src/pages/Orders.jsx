@@ -23,7 +23,7 @@ const TABS = [
   { id: 'new', label: 'New Orders' },
   { id: 'accepted', label: 'Accepted' },
   { id: 'packed', label: 'Packed / Ready' },
-  { id: 'completed', label: 'Completed' },
+  { id: 'completed', label: 'Completed (Last 7 Days)' },
   { id: 'rejected', label: 'Rejected' },
 ];
 
@@ -168,6 +168,16 @@ const Orders = () => {
         </form>
       </div>
 
+      {/* 7-Day Completed Orders Banner */}
+      {activeTab === 'completed' && (
+        <div className="p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-2xl flex items-center gap-3 text-xs text-emerald-800">
+          <Clock className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>
+            <strong>7-Day Retention:</strong> Completed orders are kept in your live history for 7 days from completion.
+          </span>
+        </div>
+      )}
+
       {/* Orders List */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-200">
@@ -213,6 +223,11 @@ const Orders = () => {
                         <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${statusBadge}`}>
                           {order.orderStatus.replace(/_/g, ' ')}
                         </span>
+                        {order.orderStatus === 'COMPLETED' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <Clock className="w-2.5 h-2.5" /> 7-Day History
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
                         <span>{new Date(order.createdAt).toLocaleString()}</span>

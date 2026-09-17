@@ -51,8 +51,28 @@ async def get_admin_orders(
     db = get_db()
     query = {}
 
-    if status and status != "ALL":
-        query["orderStatus"] = status
+    if status and status.upper() != "ALL":
+        status_norm = status.lower()
+        if status_norm in ["completed", "delivered"]:
+            query["orderStatus"] = {"$in": ["COMPLETED", "DELIVERED"]}
+            seven_days_ago = datetime.datetime.utcnow() - datetime.timedelta(days=7)
+            query["$or"] = [
+                {"completedAt": {"$gte": seven_days_ago}},
+                {"updatedAt": {"$gte": seven_days_ago}},
+                {"createdAt": {"$gte": seven_days_ago}}
+            ]
+        elif status_norm in ["new", "order_placed"]:
+            query["orderStatus"] = "ORDER_PLACED"
+        elif status_norm in ["accepted", "order_accepted"]:
+            query["orderStatus"] = "ORDER_ACCEPTED"
+        elif status_norm in ["packed", "ready_for_pickup"]:
+            query["orderStatus"] = {"$in": ["PACKED", "READY_FOR_PICKUP"]}
+        elif status_norm in ["rejected"]:
+            query["orderStatus"] = "REJECTED"
+        elif status_norm in ["cancelled"]:
+            query["orderStatus"] = "CANCELLED"
+        else:
+            query["orderStatus"] = status.upper()
 
     if search and search.strip():
         term = search.strip()
@@ -94,10 +114,13 @@ async def update_order_status(
     prev_status = existing.get("orderStatus")
     new_status = payload.status.upper()
 
+    now = datetime.datetime.utcnow()
     update_fields = {
         "orderStatus": new_status,
-        "updatedAt": datetime.datetime.utcnow(),
+        "updatedAt": now,
     }
+    if new_status == "COMPLETED":
+        update_fields["completedAt"] = now
     if payload.rejectionReason:
         update_fields["rejectionReason"] = payload.rejectionReason.strip()
 
