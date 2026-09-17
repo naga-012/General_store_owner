@@ -16,3 +16,10 @@ dist-ssr/
 Thumbs.db
 *.log
 .kilo/
+
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+backend/uploads/*
+!backend/uploads/.gitkeep
