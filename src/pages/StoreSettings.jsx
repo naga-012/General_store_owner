@@ -115,9 +115,24 @@ const StoreSettings = () => {
 
         {/* Basic Store Info */}
         <div className="space-y-4">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-            Brand & Contact Details
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Brand & Contact Details
+            </h2>
+          </div>
+
+          {/* Store Logo Display */}
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 p-1 flex items-center justify-center shadow-xs flex-shrink-0">
+              <img src="/logo.png" alt="Manikanta Superstore Logo" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-800">Store Logo</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">
+                Brand emblem used across customer web app, owner portal, and invoice receipts.
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -127,7 +142,7 @@ const StoreSettings = () => {
                 name="shopName"
                 value={formData.shopName}
                 onChange={handleChange}
-                placeholder="e.g. Manikanta Supermarket"
+                placeholder="e.g. Manikanta Superstore"
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
                 required
               />

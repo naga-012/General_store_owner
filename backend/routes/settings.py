@@ -27,7 +27,7 @@ async def get_settings():
     if not settings:
         # Default fallback
         settings = {
-            "shopName": "Manikanta Supermarket",
+            "shopName": "Manikanta Superstore",
             "tagline": "Fresh Staples & Daily Groceries",
             "phone": "9121792433",
             "whatsapp": "9121792433",

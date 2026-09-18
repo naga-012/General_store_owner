@@ -57,17 +57,17 @@ const Sidebar = ({ isOpen, onClose }) => {
       >
         {/* Brand header */}
         <div>
-          <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800 bg-slate-950/40">
+          <div className="h-16 px-5 flex items-center justify-between border-b border-slate-800 bg-slate-950/40">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-white shadow-lg shadow-emerald-500/20">
-                🏪
+              <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-emerald-500/10 border border-slate-700/50">
+                <img src="/logo.png" alt="Manikanta Superstore" className="w-full h-full object-contain" />
               </div>
-              <div>
-                <h1 className="font-bold text-base leading-tight tracking-wide text-white">
-                  Shop Owner
+              <div className="overflow-hidden">
+                <h1 className="font-bold text-sm leading-tight tracking-tight text-white truncate">
+                  Manikanta Superstore
                 </h1>
-                <span className="text-[11px] font-medium text-emerald-400 uppercase tracking-wider">
-                  Admin Portal
+                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wider">
+                  Owner Portal
                 </span>
               </div>
             </div>

@@ -61,11 +61,15 @@ const Header = ({ onOpenSidebar }) => {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2">
-          <Store className="w-5 h-5 text-emerald-600 hidden sm:block" />
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="w-8 h-8 object-contain rounded-lg border border-slate-200 hidden sm:block bg-white p-0.5"
+          />
           <div>
             <h2 className="text-sm font-bold text-slate-800 leading-tight">
-              {settings?.shopName || 'General Store'}
+              {settings?.shopName || 'Manikanta Superstore'}
             </h2>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
               <span

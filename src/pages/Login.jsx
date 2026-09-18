@@ -43,13 +43,16 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Brand Card Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white shadow-xl shadow-emerald-500/20 mb-4 ring-4 ring-emerald-500/20 text-2xl">
-            🏪
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white p-2 text-white shadow-xl shadow-emerald-500/20 mb-4 ring-4 ring-white/10">
+            <img src="/logo.png" alt="Manikanta Superstore" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Shop Owner Portal
+            Manikanta Superstore
           </h1>
-          <p className="text-slate-400 text-sm mt-2">
+          <p className="text-emerald-300/90 font-medium text-xs uppercase tracking-wider mt-1">
+            Shop Owner & Admin Portal
+          </p>
+          <p className="text-slate-400 text-xs mt-2">
             Sign in to manage products, live orders, inventory & settings
           </p>
         </div>

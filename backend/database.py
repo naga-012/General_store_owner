@@ -85,7 +85,7 @@ async def seed_defaults():
     existing_settings = await settings_col.find_one({})
     if not existing_settings:
         settings_doc = {
-            "shopName": "Manikanta Supermarket",
+            "shopName": "Manikanta Superstore",
             "tagline": "Fresh Staples & Daily Groceries",
             "phone": "9121792433",
             "whatsapp": "9121792433",

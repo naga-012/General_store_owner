@@ -1,4 +1,4 @@
-# General Store — Shop Owner & Admin Website
+# Manikanta Superstore — Shop Owner & Admin Website
 
 A modern, responsive, real-time Shop Owner and Supermarket Admin portal built with React, Vite, Tailwind CSS, and Socket.IO.
 

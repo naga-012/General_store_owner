@@ -19,7 +19,12 @@ export const getBackendOrigin = () => {
 
 export const getFullImageUrl = (imagePath) => {
   if (!imagePath) return '';
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+  if (
+    imagePath.startsWith('http://') ||
+    imagePath.startsWith('https://') ||
+    imagePath.startsWith('data:') ||
+    imagePath.startsWith('blob:')
+  ) {
     return imagePath;
   }
   const origin = getBackendOrigin();
