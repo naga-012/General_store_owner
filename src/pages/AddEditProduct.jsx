@@ -122,6 +122,7 @@ const AddEditProduct = () => {
 
     // Upload to server using /api/products/upload-image
     const formData = new FormData();
+    formData.append('file', file);
     formData.append('image', file);
 
     setUploadingImage(true);
@@ -134,7 +135,9 @@ const AddEditProduct = () => {
         toast.success('Photo uploaded successfully.');
       }
     } catch (err) {
-      toast.error('Image upload failed. Please try again.');
+      console.error('Image upload error:', err);
+      const msg = err.response?.data?.detail || err.response?.data?.message || 'Image upload failed. Please try again.';
+      toast.error(typeof msg === 'string' ? msg : 'Image upload failed. Please try again.');
     } finally {
       setUploadingImage(false);
     }

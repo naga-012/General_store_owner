@@ -228,16 +228,23 @@ async def delete_product(prod_id: str, admin: dict = Depends(get_current_admin))
     }
 
 @router.post("/upload-image")
-async def upload_image(file: UploadFile = File(...)):
-    filename = file.filename or "image.jpg"
+async def upload_image(
+    file: Optional[UploadFile] = File(None),
+    image: Optional[UploadFile] = File(None)
+):
+    upload_file = file or image
+    if not upload_file:
+        raise HTTPException(status_code=400, detail="No image file provided")
+
+    filename = upload_file.filename or "image.jpg"
     ext = os.path.splitext(filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"]:
         ext = ".jpg"
 
     unique_name = f"{int(datetime.datetime.utcnow().timestamp() * 1000)}_{uuid.uuid4().hex[:8]}{ext}"
     dest_path = UPLOAD_DIR / unique_name
 
-    contents = await file.read()
+    contents = await upload_file.read()
     with open(dest_path, "wb") as f:
         f.write(contents)
 

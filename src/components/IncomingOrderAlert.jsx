@@ -24,9 +24,18 @@ const IncomingOrderAlert = () => {
               </span>
               <strong className="text-base text-white">{activeAlertOrder.orderId}</strong>
             </div>
-            <p className="text-xs text-rose-100 font-medium mt-0.5">
-              Customer: <span className="font-bold text-white">{activeAlertOrder.customerName || 'Customer'}</span> • Total:{' '}
-              <span className="font-extrabold text-yellow-200">₹{activeAlertOrder.grandTotal}</span>
+            <p className="text-xs text-rose-100 font-medium mt-0.5 flex flex-wrap items-center gap-2">
+              <span>Customer: <strong className="text-white">{activeAlertOrder.customerName || activeAlertOrder.customer?.name || 'Customer'}</strong></span>
+              <span>•</span>
+              <span>Total: <strong className="text-yellow-200">₹{activeAlertOrder.grandTotal}</strong></span>
+              {(activeAlertOrder.customerAddress || activeAlertOrder.deliveryAddress || activeAlertOrder.customer?.address) && (
+                <>
+                  <span>•</span>
+                  <span className="inline-flex items-center gap-1 bg-black/20 px-2 py-0.5 rounded text-[10px] text-yellow-100 max-w-[200px] truncate">
+                    📍 {activeAlertOrder.customerAddress || activeAlertOrder.deliveryAddress || activeAlertOrder.customer?.address}
+                  </span>
+                </>
+              )}
             </p>
           </div>
         </div>

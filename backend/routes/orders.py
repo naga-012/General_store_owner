@@ -23,15 +23,38 @@ class OrderItem(BaseModel):
     image: Optional[str] = ""
 
 class CustomerInfo(BaseModel):
-    name: str
-    mobile: str
+    model_config = {"extra": "allow"}
+    name: Optional[str] = "Customer"
+    mobile: Optional[str] = ""
     email: Optional[str] = ""
     address: Optional[str] = ""
+    landmark: Optional[str] = ""
+    city: Optional[str] = ""
+    pincode: Optional[str] = ""
+    houseNo: Optional[str] = ""
+    area: Optional[str] = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    location: Optional[Any] = None
+    coordinates: Optional[Any] = None
+    mapsUrl: Optional[str] = ""
+    googleMapsUrl: Optional[str] = ""
 
 class OrderCreate(BaseModel):
+    model_config = {"extra": "allow"}
     items: List[OrderItem]
     grandTotal: float
     customer: Optional[CustomerInfo] = None
+    customerName: Optional[str] = ""
+    customerMobile: Optional[str] = ""
+    customerAddress: Optional[str] = ""
+    deliveryAddress: Optional[Any] = None
+    deliveryLocation: Optional[Any] = None
+    location: Optional[Any] = None
+    coordinates: Optional[Any] = None
+    orderType: Optional[str] = "DELIVERY"
     paymentMethod: Optional[str] = "COD"
     notes: Optional[str] = ""
 
@@ -202,12 +225,55 @@ async def create_order(
         if not customer_data.get("address"):
             customer_data["address"] = current_user.get("address")
 
+    # Location and Coordinates normalization
+    lat = customer_data.get("latitude") if customer_data.get("latitude") is not None else customer_data.get("lat")
+    lng = customer_data.get("longitude") if customer_data.get("longitude") is not None else customer_data.get("lng")
+    if lat is None and payload.coordinates and isinstance(payload.coordinates, dict):
+        lat = payload.coordinates.get("lat") or payload.coordinates.get("latitude")
+        lng = payload.coordinates.get("lng") or payload.coordinates.get("longitude")
+    if lat is None and payload.deliveryLocation and isinstance(payload.deliveryLocation, dict):
+        lat = payload.deliveryLocation.get("lat") or payload.deliveryLocation.get("latitude")
+        lng = payload.deliveryLocation.get("lng") or payload.deliveryLocation.get("longitude")
+
+    full_addr = (
+        payload.customerAddress or
+        payload.deliveryAddress or
+        customer_data.get("address") or
+        ""
+    )
+    if isinstance(full_addr, dict):
+        full_addr = full_addr.get("address") or full_addr.get("formattedAddress") or str(full_addr)
+
+    landmark = customer_data.get("landmark") or (payload.deliveryAddress.get("landmark") if isinstance(payload.deliveryAddress, dict) else "") or ""
+    pincode = customer_data.get("pincode") or (payload.deliveryAddress.get("pincode") if isinstance(payload.deliveryAddress, dict) else "") or ""
+    city = customer_data.get("city") or (payload.deliveryAddress.get("city") if isinstance(payload.deliveryAddress, dict) else "") or ""
+
+    maps_url = customer_data.get("googleMapsUrl") or customer_data.get("mapsUrl") or ""
+    if not maps_url:
+        if lat is not None and lng is not None:
+            maps_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lng}"
+        elif full_addr:
+            import urllib.parse
+            maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote_plus(str(full_addr))}"
+
     doc = {
         "orderId": order_id,
         "orderStatus": "ORDER_PLACED",
         "items": [item.model_dump() for item in payload.items],
         "grandTotal": float(payload.grandTotal),
         "customer": customer_data,
+        "customerName": customer_data.get("name") or payload.customerName or "Customer",
+        "customerMobile": customer_data.get("mobile") or payload.customerMobile or "",
+        "customerAddress": full_addr,
+        "deliveryAddress": full_addr,
+        "landmark": landmark,
+        "pincode": pincode,
+        "city": city,
+        "latitude": lat,
+        "longitude": lng,
+        "coordinates": {"lat": lat, "lng": lng} if (lat is not None and lng is not None) else None,
+        "googleMapsUrl": maps_url,
+        "orderType": payload.orderType or "DELIVERY",
         "paymentMethod": payload.paymentMethod or "COD",
         "notes": payload.notes or "",
         "createdAt": now,

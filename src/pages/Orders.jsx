@@ -15,6 +15,10 @@ import {
   ChevronRight,
   MapPin,
   ExternalLink,
+  Navigation,
+  Copy,
+  MessageSquare,
+  Compass,
 } from 'lucide-react';
 import api from '../services/api';
 import { useSocket } from '../context/SocketContext';
@@ -29,16 +33,116 @@ const TABS = [
   { id: 'rejected', label: 'Rejected' },
 ];
 
-const getOrderLocation = (order) => {
-  if (!order) return 'Store Counter Pickup';
-  return (
+export const getLocationMeta = (order) => {
+  if (!order) {
+    return {
+      isPickup: true,
+      displayAddress: 'Store Counter Pickup',
+      fullAddress: 'Store Counter Pickup',
+      landmark: '',
+      city: '',
+      pincode: '',
+      hasCoords: false,
+      lat: null,
+      lng: null,
+      mapsUrl: '',
+      directionsUrl: '',
+    };
+  }
+
+  const cust = order.customer || {};
+
+  // Extract lat / lng from all potential locations
+  let lat =
+    order.latitude ??
+    order.lat ??
+    order.coordinates?.lat ??
+    order.coordinates?.latitude ??
+    cust.latitude ??
+    cust.lat ??
+    cust.coordinates?.lat ??
+    cust.location?.lat ??
+    cust.location?.latitude ??
+    null;
+
+  let lng =
+    order.longitude ??
+    order.lng ??
+    order.coordinates?.lng ??
+    order.coordinates?.longitude ??
+    cust.longitude ??
+    cust.lng ??
+    cust.coordinates?.lng ??
+    cust.location?.lng ??
+    cust.location?.longitude ??
+    null;
+
+  if (Array.isArray(order.coordinates) && order.coordinates.length >= 2) {
+    lng = order.coordinates[0];
+    lat = order.coordinates[1];
+  } else if (Array.isArray(cust.coordinates) && cust.coordinates.length >= 2) {
+    lng = cust.coordinates[0];
+    lat = cust.coordinates[1];
+  }
+
+  if (lat !== null) lat = Number(lat);
+  if (lng !== null) lng = Number(lng);
+  const hasCoords = lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng);
+
+  // Address strings
+  const rawAddr =
     order.customerAddress ||
     order.deliveryAddress ||
     order.address ||
-    order.customer?.address ||
+    cust.address ||
+    cust.formattedAddress ||
     order.shippingAddress ||
-    (order.orderType === 'PICKUP' ? 'Store Counter Pickup' : 'Store Counter Pickup')
-  );
+    '';
+
+  const addressStr = typeof rawAddr === 'string' ? rawAddr.trim() : (rawAddr?.address || rawAddr?.formattedAddress || '');
+  const landmark = order.landmark || cust.landmark || (typeof rawAddr === 'object' ? rawAddr.landmark : '') || '';
+  const pincode = order.pincode || cust.pincode || (typeof rawAddr === 'object' ? rawAddr.pincode : '') || '';
+  const city = order.city || cust.city || (typeof rawAddr === 'object' ? rawAddr.city : '') || '';
+  const houseNo = order.houseNo || cust.houseNo || (typeof rawAddr === 'object' ? rawAddr.houseNo : '') || '';
+
+  const isPickup =
+    order.orderType === 'PICKUP' ||
+    (!addressStr && !hasCoords && order.orderType !== 'DELIVERY');
+
+  let fullAddress = addressStr;
+  if (!fullAddress && !isPickup && hasCoords) {
+    fullAddress = `GPS Pin Location (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+  } else if (!fullAddress && isPickup) {
+    fullAddress = 'Store Counter Pickup';
+  }
+
+  // Google Maps URLs
+  let mapsUrl = order.googleMapsUrl || cust.googleMapsUrl || cust.mapsUrl || '';
+  let directionsUrl = '';
+
+  if (hasCoords) {
+    mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  } else if (fullAddress && !isPickup) {
+    const query = encodeURIComponent(fullAddress + (city ? ', ' + city : '') + (pincode ? ' ' + pincode : ''));
+    mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${query}`;
+  }
+
+  return {
+    isPickup,
+    displayAddress: fullAddress,
+    fullAddress,
+    landmark,
+    city,
+    pincode,
+    houseNo,
+    hasCoords,
+    lat,
+    lng,
+    mapsUrl,
+    directionsUrl,
+  };
 };
 
 const Orders = () => {
@@ -119,6 +223,16 @@ const Orders = () => {
       toast.error(err.response?.data?.message || 'Failed to update order status');
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleCopyLocation = (text) => {
+    if (!text) return;
+    try {
+      navigator.clipboard.writeText(text);
+      toast.success('✓ Location copied to clipboard');
+    } catch {
+      toast.error('Failed to copy location');
     }
   };
 
@@ -216,6 +330,9 @@ const Orders = () => {
             else if (order.orderStatus === 'REJECTED') statusBadge = 'bg-rose-100 text-rose-900 border-rose-300';
 
             const isUpdating = updatingId === order._id;
+            const loc = getLocationMeta(order);
+            const custName = order.customerName || order.customer?.name || 'Customer';
+            const custMobile = order.customerMobile || order.customer?.mobile || '';
 
             return (
               <div
@@ -245,11 +362,13 @@ const Orders = () => {
                       <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
                         <span>{new Date(order.createdAt).toLocaleString()}</span>
                         <span>•</span>
-                        <span className="font-medium text-slate-700">{order.customerName || 'Customer'}</span>
-                        <span className="flex items-center gap-1 text-slate-500">
-                          <Phone className="w-3 h-3" />
-                          {order.customerMobile}
-                        </span>
+                        <span className="font-medium text-slate-700">{custName}</span>
+                        {custMobile && (
+                          <span className="flex items-center gap-1 text-slate-500">
+                            <Phone className="w-3 h-3" />
+                            {custMobile}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -260,25 +379,71 @@ const Orders = () => {
                   </div>
                 </div>
 
-                {/* Customer Location */}
-                <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs">
-                  <div className="flex items-center gap-2 text-slate-800">
-                    <MapPin className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                    <span className="font-medium text-slate-700">
-                      <strong className="text-slate-900">Customer Location:</strong> {getOrderLocation(order)}
-                    </span>
+                {/* Customer Exact Location Card */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="font-bold text-slate-900">
+                        {loc.isPickup ? 'Store Counter Pickup' : 'Customer Delivery Location'}
+                      </span>
+                      {loc.hasCoords && (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                          📍 GPS Pin Attached
+                        </span>
+                      )}
+                    </div>
+
+                    {!loc.isPickup && loc.mapsUrl && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyLocation(`${loc.fullAddress}${loc.hasCoords ? ` (GPS: ${loc.lat}, ${loc.lng})` : ''}`)}
+                          className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-900 text-[11px] bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs hover:bg-slate-50 transition"
+                          title="Copy address to clipboard"
+                        >
+                          <Copy className="w-3 h-3" />
+                          <span>Copy</span>
+                        </button>
+                        <a
+                          href={loc.directionsUrl || loc.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-bold text-blue-700 hover:text-blue-800 text-[11px] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 hover:bg-blue-100 transition"
+                          title="Get turn-by-turn directions"
+                        >
+                          <Navigation className="w-3 h-3 text-blue-600" />
+                          <span>Navigate</span>
+                        </a>
+                        <a
+                          href={loc.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800 text-[11px] bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 hover:bg-emerald-100 transition"
+                          title="Open in Google Maps"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Google Maps</span>
+                        </a>
+                      </div>
+                    )}
                   </div>
-                  {getOrderLocation(order) !== 'Store Counter Pickup' && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getOrderLocation(order))}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800 hover:underline text-[11px] bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200"
-                    >
-                      <span>Google Maps</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
+
+                  <div className="text-slate-700 pl-8 leading-relaxed">
+                    <p className="font-semibold text-slate-900">{loc.displayAddress}</p>
+                    {loc.landmark && (
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        <strong>Landmark:</strong> {loc.landmark}
+                      </p>
+                    )}
+                    {loc.hasCoords && (
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        Coordinates: {loc.lat.toFixed(6)}, {loc.lng.toFixed(6)}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Items Summary (Requirement 27) */}
@@ -290,7 +455,7 @@ const Orders = () => {
                     {(order.items || []).map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs text-slate-700">
                         <span className="font-medium">
-                          <strong>{item.name}</strong> — {item.unit} × {item.quantity}
+                          <strong>{item.productName || item.name}</strong> — {item.unit} × {item.quantity}
                         </span>
                         <span className="font-bold text-slate-800">₹{item.lineTotal}</span>
                       </div>
@@ -305,7 +470,7 @@ const Orders = () => {
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-emerald-700 transition py-1"
                   >
                     <Eye className="w-4 h-4" />
-                    <span>View Full Details</span>
+                    <span>View Full Details & Exact Location</span>
                   </button>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -374,113 +539,238 @@ const Orders = () => {
       )}
 
       {/* Order Detail Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">{selectedOrder.orderId}</h3>
-                <span className="text-xs text-slate-500">
-                  {new Date(selectedOrder.createdAt).toLocaleString()}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {selectedOrder && (() => {
+        const modalLoc = getLocationMeta(selectedOrder);
+        const mCustName = selectedOrder.customerName || selectedOrder.customer?.name || 'Customer';
+        const mCustMobile = selectedOrder.customerMobile || selectedOrder.customer?.mobile || '';
+        const mCustEmail = selectedOrder.customerEmail || selectedOrder.customer?.email || '';
+        const cleanMobile = (mCustMobile || '').replace(/[^0-9]/g, '');
+        const waNumber = cleanMobile.length === 10 ? `91${cleanMobile}` : cleanMobile;
+        const waLink = waNumber ? `https://wa.me/${waNumber}?text=${encodeURIComponent(`Hello ${mCustName}, regarding your order #${selectedOrder.orderId} from Manikanta Supermarket:`)}` : '';
 
-            {/* Customer Details & Location */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-2.5">
-              <div className="font-bold text-slate-900 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-rose-500" />
-                  <span>Customer & Delivery Location</span>
-                </span>
-                {getOrderLocation(selectedOrder) && getOrderLocation(selectedOrder) !== 'Store Counter Pickup' && (
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getOrderLocation(selectedOrder))}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:underline bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 text-[11px]"
-                  >
-                    <span>Open in Google Maps</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-100 space-y-4 max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-black text-slate-900">{selectedOrder.orderId}</h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                      {selectedOrder.orderStatus.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    Placed on {new Date(selectedOrder.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Customer Exact Location & Details */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100/80 border border-slate-200/90 text-xs space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-sm">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-slate-900 text-sm block">Customer & Delivery Location</span>
+                      <span className="text-[10px] text-slate-500">
+                        {modalLoc.isPickup ? 'Customer will pick up from store counter' : 'Exact destination address and GPS pin'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {modalLoc.hasCoords && (
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-extrabold text-[10px] border border-emerald-300 flex items-center gap-1">
+                      <Compass className="w-3 h-3 text-emerald-700" />
+                      Live GPS Verified
+                    </span>
+                  )}
+                </div>
+
+                {/* Customer Contact row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-white p-3 rounded-xl border border-slate-200/70">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Customer Name</span>
+                    <span className="font-bold text-slate-900 text-xs">{mCustName}</span>
+                    {mCustEmail && (
+                      <span className="text-[11px] text-slate-500 block truncate">{mCustEmail}</span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Contact & WhatsApp</span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {mCustMobile ? (
+                        <>
+                          <a
+                            href={`tel:${mCustMobile}`}
+                            className="font-bold text-emerald-700 hover:underline inline-flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200 text-xs"
+                          >
+                            <Phone className="w-3 h-3" />
+                            {mCustMobile}
+                          </a>
+                          {waLink && (
+                            <a
+                              href={waLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-bold text-emerald-700 hover:underline inline-flex items-center gap-1 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded-lg border border-emerald-300 text-xs transition"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageSquare className="w-3 h-3" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-slate-400">Not provided</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Detailed Address View */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 font-bold uppercase text-[10px]">
+                      Exact Delivery Address
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyLocation(`${modalLoc.fullAddress}${modalLoc.hasCoords ? ` (GPS: ${modalLoc.lat}, ${modalLoc.lng})` : ''}`)}
+                      className="inline-flex items-center gap-1 text-[11px] text-slate-600 hover:text-slate-900 font-semibold bg-white px-2 py-0.5 rounded-md border border-slate-200 hover:bg-slate-50"
+                    >
+                      <Copy className="w-2.5 h-2.5" />
+                      <span>Copy Address</span>
+                    </button>
+                  </div>
+                  <div className="p-3 bg-white rounded-xl border border-slate-200/80 space-y-1">
+                    <p className="font-bold text-slate-900 text-xs leading-relaxed">
+                      {modalLoc.displayAddress}
+                    </p>
+                    {modalLoc.landmark && (
+                      <p className="text-xs text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 font-medium inline-block mt-1">
+                        <strong>Landmark:</strong> {modalLoc.landmark}
+                      </p>
+                    )}
+                    {(modalLoc.city || modalLoc.pincode) && (
+                      <p className="text-[11px] text-slate-500">
+                        {[modalLoc.city, modalLoc.pincode].filter(Boolean).join(' - ')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* GPS Coordinates & Interactive Map */}
+                {modalLoc.hasCoords && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-bold uppercase text-[10px]">
+                        Exact GPS Location
+                      </span>
+                      <span className="font-mono text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        {modalLoc.lat.toFixed(6)}, {modalLoc.lng.toFixed(6)}
+                      </span>
+                    </div>
+
+                    {/* Embedded OpenStreetMap Preview */}
+                    <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm bg-slate-100">
+                      <iframe
+                        title="Customer Location Pin"
+                        width="100%"
+                        height="180"
+                        className="w-full h-44 border-0"
+                        loading="lazy"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${modalLoc.lng - 0.005}%2C${modalLoc.lat - 0.003}%2C${modalLoc.lng + 0.005}%2C${modalLoc.lat + 0.003}&layer=mapnik&marker=${modalLoc.lat}%2C${modalLoc.lng}`}
+                      />
+                      <div className="absolute top-2 right-2">
+                        <span className="px-2 py-1 rounded-lg bg-black/70 backdrop-blur-md text-white text-[10px] font-bold">
+                          📍 Pin at Customer Spot
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Map Action Buttons */}
+                {!modalLoc.isPickup && modalLoc.mapsUrl && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <a
+                      href={modalLoc.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 transition"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open Google Maps</span>
+                    </a>
+                    <a
+                      href={modalLoc.directionsUrl || modalLoc.mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs text-center flex items-center justify-center gap-1.5 shadow-sm shadow-blue-600/20 transition"
+                    >
+                      <Navigation className="w-3.5 h-3.5" />
+                      <span>Get Directions</span>
+                    </a>
+                  </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Customer Name</span>
-                  <span className="font-bold text-slate-800">{selectedOrder.customerName || 'Customer'}</span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Mobile Number</span>
-                  <a href={`tel:${selectedOrder.customerMobile}`} className="font-bold text-emerald-700 hover:underline inline-flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    {selectedOrder.customerMobile}
-                  </a>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-200/60">
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Exact Delivery Address / Location</span>
-                <span className="font-semibold text-slate-800 text-xs mt-0.5 block leading-relaxed">
-                  {getOrderLocation(selectedOrder)}
-                </span>
-              </div>
-            </div>
-
-            {/* Items Table */}
-            <div className="space-y-2">
-              <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">Ordered Items</div>
-              <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 text-xs">
-                {selectedOrder.items?.map((it, idx) => (
-                  <div key={idx} className="p-3 flex items-center justify-between">
-                    <div>
-                      <div className="font-bold text-slate-800">{it.name}</div>
-                      <div className="text-slate-500">{it.unit} × {it.quantity} @ ₹{it.price} each</div>
+              {/* Items Table */}
+              <div className="space-y-2">
+                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">Ordered Items</div>
+                <div className="border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100 text-xs">
+                  {selectedOrder.items?.map((it, idx) => (
+                    <div key={idx} className="p-3 flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-slate-800">{it.productName || it.name}</div>
+                        <div className="text-slate-500">{it.unit} × {it.quantity} @ ₹{it.price} each</div>
+                      </div>
+                      <div className="font-black text-slate-900">₹{it.lineTotal}</div>
                     </div>
-                    <div className="font-black text-slate-900">₹{it.lineTotal}</div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
 
-            {/* Total breakdown */}
-            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-sm">
-              <span className="font-bold text-emerald-950">Grand Total Amount</span>
-              <span className="text-xl font-black text-emerald-800">₹{selectedOrder.grandTotal}</span>
-            </div>
+              {/* Total breakdown */}
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-sm">
+                <span className="font-bold text-emerald-950">Grand Total Amount</span>
+                <span className="text-xl font-black text-emerald-800">₹{selectedOrder.grandTotal}</span>
+              </div>
 
-            {/* Status Flow Timeline */}
-            <div className="space-y-2 pt-2">
-              <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">Status History</div>
-              <div className="space-y-1.5 text-xs text-slate-600">
-                {selectedOrder.statusHistory?.map((h, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5" />
-                    <div>
-                      <strong className="text-slate-800">{h.status.replace(/_/g, ' ')}</strong> — {h.note}
-                      <div className="text-[10px] text-slate-400">{new Date(h.timestamp).toLocaleString()}</div>
+              {/* Status Flow Timeline */}
+              <div className="space-y-2 pt-2">
+                <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">Status History</div>
+                <div className="space-y-1.5 text-xs text-slate-600">
+                  {selectedOrder.statusHistory?.map((h, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5" />
+                      <div>
+                        <strong className="text-slate-800">{h.status.replace(/_/g, ' ')}</strong> — {h.note}
+                        <div className="text-[10px] text-slate-400">{new Date(h.timestamp).toLocaleString()}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
-            >
-              Close
-            </button>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Reject Order Reason Modal */}
       {rejectingOrder && (
